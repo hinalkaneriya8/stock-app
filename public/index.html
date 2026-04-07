@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock Tracker</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #0d1b2a;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      color: #6b7280;
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    #refresh-btn {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    #refresh-btn:hover {
+      background: #1d4ed8;
+    }
+
+    #refresh-btn:disabled {
+      background: #93c5fd;
+      cursor: not-allowed;
+    }
+
+    #status {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      color: #6b7280;
+      min-height: 1.2em;
+    }
+
+    #status.error {
+      color: #dc2626;
+    }
+
+    .table-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: #1e3a5f;
+      color: white;
+    }
+
+    thead th {
+      padding: 14px 20px;
+      text-align: left;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid #f3f4f6;
+      transition: background 0.15s;
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    tbody td {
+      padding: 16px 20px;
+      font-size: 0.95rem;
+    }
+
+    .stock-name {
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .stock-symbol {
+      font-size: 0.78rem;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+
+    .stock-price {
+      font-weight: 700;
+      color: #059669;
+      font-size: 1.05rem;
+    }
+
+    .stock-time {
+      color: #6b7280;
+      font-size: 0.85rem;
+    }
+
+    .skeleton td {
+      padding: 16px 20px;
+    }
+
+    .skeleton-bar {
+      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 4px;
+      height: 14px;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Stock Tracker</h1>
+    <p>Live mock prices for top US stocks</p>
+  </header>
+
+  <div class="controls">
+    <button id="refresh-btn" onclick="loadStocks()">Refresh Prices</button>
+  </div>
+
+  <div id="status"></div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Stock</th>
+          <th>Price (USD)</th>
+          <th>Last Updated</th>
+        </tr>
+      </thead>
+      <tbody id="stocks-body">
+        <!-- Skeleton rows shown while loading -->
+        <tr class="skeleton">
+          <td><div class="skeleton-bar" style="width:120px"></div></td>
+          <td><div class="skeleton-bar" style="width:80px"></div></td>
+          <td><div class="skeleton-bar" style="width:160px"></div></td>
+        </tr>
+        <tr class="skeleton">
+          <td><div class="skeleton-bar" style="width:100px"></div></td>
+          <td><div class="skeleton-bar" style="width:70px"></div></td>
+          <td><div class="skeleton-bar" style="width:160px"></div></td>
+        </tr>
+        <tr class="skeleton">
+          <td><div class="skeleton-bar" style="width:140px"></div></td>
+          <td><div class="skeleton-bar" style="width:85px"></div></td>
+          <td><div class="skeleton-bar" style="width:160px"></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    function formatPrice(price) {
+      return '$' + Number(price).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function formatTime(isoString) {
+      const date = new Date(isoString);
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+
+    async function loadStocks() {
+      const tbody = document.getElementById('stocks-body');
+      const status = document.getElementById('status');
+      const btn = document.getElementById('refresh-btn');
+
+      btn.disabled = true;
+      status.className = '';
+      status.textContent = 'Fetching latest prices...';
+
+      try {
+        const response = await fetch('/api/stocks');
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+        const stocks = await response.json();
+
+        tbody.innerHTML = stocks.map(stock => `
+          <tr>
+            <td>
+              <div class="stock-name">${escapeHtml(stock.name)}</div>
+              ${stock.symbol ? `<div class="stock-symbol">${escapeHtml(stock.symbol)}</div>` : ''}
+            </td>
+            <td class="stock-price">${formatPrice(stock.price)}</td>
+            <td class="stock-time">${formatTime(stock.lastUpdated)}</td>
+          </tr>
+        `).join('');
+
+        status.textContent = `Updated at ${new Date().toLocaleTimeString()}`;
+      } catch (err) {
+        status.className = 'error';
+        status.textContent = 'Error: ' + err.message;
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="3" style="text-align:center; padding:32px; color:#dc2626;">
+              Failed to load stock data. Please try again.
+            </td>
+          </tr>
+        `;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Auto-load on page open
+    loadStocks();
+  </script>
+</body>
+</html>
