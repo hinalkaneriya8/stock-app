@@ -42,9 +42,16 @@ const stocks = [
   }
 ];
 
+// Simulate small random price movement (+/- 0.5%) on each request
+function jitterPrice(base) {
+  const change = (Math.random() - 0.5) * 0.01 * base;
+  return Math.round((base + change) * 100) / 100;
+}
+
 app.get('/api/stocks', (req, res) => {
   const updatedStocks = stocks.map(stock => ({
     ...stock,
+    price: jitterPrice(stock.price),
     lastUpdated: new Date().toISOString()
   }));
   res.json(updatedStocks);

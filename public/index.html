@@ -170,6 +170,7 @@
 
   <div class="controls">
     <button id="refresh-btn" onclick="loadStocks()">Refresh Prices</button>
+    <span id="auto-refresh-label" style="margin-left:12px; font-size:0.85rem; color:#6b7280;">Auto-refreshes every 30s</span>
   </div>
 
   <div id="status"></div>
@@ -273,8 +274,9 @@
       return div.innerHTML;
     }
 
-    // Auto-load on page open
+    // Auto-load on page open and refresh every 30 seconds
     loadStocks();
+    setInterval(loadStocks, 30000);
   </script>
 </body>
 </html>
